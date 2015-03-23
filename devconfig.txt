@@ -1,0 +1,34 @@
+Icd [root]
+ionic start push-notify-sample
+# using v1.0.0-rc1
+
+cd push-notify-sample
+bower install
+bower install ngCordova --save
+bower install parse-js-sdk --save
+ionic platform add ios
+
+# install required plugins
+ionic plugin add org.apache.cordova.console
+ionic plugin add org.apache.cordova.device
+ionic plugin add org.apache.cordova.dialogs    
+ionic plugin add org.apache.cordova.file
+ionic plugin add org.apache.cordova.media
+ionic plugin add https://github.com/phonegap-build/PushPlugin
+ionic plugin add https://github.com/EddyVerbruggen/Toast-PhoneGap-Plugin.git
+
+
+# copy sample codebase and move to ionic folder
+git clone https://github.com/hollyschinsky/PushNotificationSample project
+cd ./project; 
+mv www/lib www/lib.0; 
+cp -rf apn-server www sendGCM.js ..; 
+cd /dev.snaphappi.com/_play/push-notify-sample
+
+
+# additional notes for push-notify with Parse from this thread
+# http://forum.ionicframework.com/t/using-ionic-with-amazon-sns-for-push-notifications-for-ios-and-android/12307/5
+# PARSE.parseInstallationId = Parse._getInstallationId();
+
+
+

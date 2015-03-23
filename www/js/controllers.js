@@ -4,7 +4,7 @@
  * blog: devgirl.org
  * more tutorials: hollyschinsky.github.io
  */
-app.controller('AppCtrl', function($scope, $cordovaPush, $cordovaDialogs, $cordovaMedia, $cordovaToast, ionPlatform, $http) {
+app.controller('AppCtrl', function($scope, $cordovaPush, $cordovaDialogs, $cordovaMedia, $cordovaToast, ionPlatform, $http, PARSE) {
     $scope.notifications = [];
 
     // call to register automatically upon device ready
@@ -119,6 +119,7 @@ app.controller('AppCtrl', function($scope, $cordovaPush, $cordovaDialogs, $cordo
     //
     // type:  Platform type (ios, android etc)
     function storeDeviceToken(type) {
+        return storeDeviceTokenToPARSE(type);
         // Create a random userid to store with it
         var user = { user: 'user' + Math.floor((Math.random() * 10000000) + 1), type: type, token: $scope.regId };
         console.log("Post token for registered device with data " + JSON.stringify(user));
@@ -133,12 +134,44 @@ app.controller('AppCtrl', function($scope, $cordovaPush, $cordovaDialogs, $cordo
         );
     }
 
+
+
+    function storeDeviceTokenToPARSE(type, token) {
+        // Create a random userid to store with it
+        var user = { user: 'user' + Math.floor((Math.random() * 100) + 1), type: type, token: $scope.regId };
+        console.log("Post token for registered device with data " + JSON.stringify(user));
+        postData = {"deviceType": user.type,
+                       "deviceToken": user.token,
+                       "installationId" : PARSE.parseInstallationId,
+                       "userDevice": user.user,
+                       "channels": [""] 
+                   }
+
+        $http({
+                url: "https://api.parse.com/1/installations",
+                method: "POST",
+                data: postData,
+                headers:  {"X-Parse-Application-Id": PARSE.parse_appkey,
+                           "X-Parse-REST-API-Key": PARSE.parse_restkey,
+                           "Content-Type": "application/json"}
+            })
+            .success(function (data, status) {
+                PARSE.installation = data
+                console.log("Token stored, device is successfully subscribed to receive push notifications.");
+            })
+            .error(function (data, status) {
+                console.log("Error storing device token." + data + " " + status)
+            }
+        );
+    }     
+
     // Removes the device token from the db via node-pushserver API unsubscribe (running locally in this case).
     // If you registered the same device with different userids, *ALL* will be removed. (It's recommended to register each
     // time the app opens which this currently does. However in many cases you will always receive the same device token as
     // previously so multiple userids will be created with the same token unless you add code to check).
     function removeDeviceToken() {
         var tkn = {"token": $scope.regId};
+        return removeDeviceTokenFromPARSE(tkn);
         $http.post('http://192.168.1.16:8000/unsubscribe', JSON.stringify(tkn))
             .success(function (data, status) {
                 console.log("Token removed, device is successfully unsubscribed and will not receive push notifications.");
@@ -148,6 +181,31 @@ app.controller('AppCtrl', function($scope, $cordovaPush, $cordovaDialogs, $cordo
             }
         );
     }
+
+
+    function removeDeviceTokenFromPARSE(token) {
+        // remove by ObjectId using MASTER key
+        // WARNING: DO NOT INCLUDE MASTER KEY IN APP
+        id = PARSE.installation.objectId
+
+        $http({
+                url: "https://api.parse.com/1/installations/" + id,
+                method: "DELETE",
+                headers:  {"X-Parse-Application-Id": PARSE.parse_appkey,
+                           "X-Parse-Master-Key": PARSE.parse_MASTER_key,
+                           "Content-Type": "application/json"}
+            })
+            .success(function (data, status) {
+                $scope.regId = null
+                console.log("PARSE installation removed. device is successfully unsubscribed and will not receive push notifications.");
+            })
+            .error(function (data, status) {
+                console.log("Error storing device token." + data + " " + status)
+            }
+        );
+    }    
+
+
 
     // Unregister - Unregister your device token from APNS or GCM
     // Not recommended:  See http://developer.android.com/google/gcm/adv.html#unreg-why
@@ -165,6 +223,7 @@ app.controller('AppCtrl', function($scope, $cordovaPush, $cordovaDialogs, $cordo
 //            console.log("Unregister error " + err)
 //        });
     }
+ 
 
 
 })
